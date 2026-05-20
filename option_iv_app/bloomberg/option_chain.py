@@ -249,11 +249,14 @@ class OptionChain:
             _add_override("CHAIN_EXPIRY_OVERRIDE", max_expiry.strftime("%Y%m%d"))
             log.info("[%s] CHAIN_EXPIRY_OVERRIDE=%s", self.underlying, max_expiry)
 
-        self._session.sendRequest(request)
+        # Route the response to a dedicated EventQueue so that nextEvent()
+        # on the queue doesn't conflict with the session's async event handler.
+        eq = blpapi.EventQueue()
+        self._session.sendRequest(request, eventQueue=eq)
 
         tickers: list[str] = []
         while True:
-            event = self._session.nextEvent(timeout=5000)
+            event = eq.nextEvent(timeout=5000)
             for msg in event:
                 if msg.hasElement("securityData"):
                     sd = msg.getElement("securityData").getValueAsElement(0)
@@ -285,10 +288,11 @@ class OptionChain:
                 request.getElement("securities").appendValue(t)
             for f in REFERENCE_FIELDS:
                 request.getElement("fields").appendValue(f)
-            self._session.sendRequest(request)
+            eq = blpapi.EventQueue()
+            self._session.sendRequest(request, eventQueue=eq)
 
             while True:
-                event = self._session.nextEvent(timeout=5000)
+                event = eq.nextEvent(timeout=5000)
                 for msg in event:
                     if not msg.hasElement("securityData"):
                         continue
