@@ -257,19 +257,22 @@ class OptionChain:
         specific_expiry: date | None = None,
     ) -> list[str]:
         """
-        One ReferenceDataRequest → list of option tickers.
+        One ReferenceDataRequest → list of option tickers via CHAIN_TICKERS.
 
-        Uses Bloomberg overrides to reduce data transmitted server-side:
-            specific_expiry  → CHAIN_EXP_DT        (exact single expiry)
-            max_expiry       → CHAIN_EXPIRY_OVERRIDE (on or before this date)
+        CHAIN_TICKERS (unlike OPT_CHAIN) honours expiry overrides server-side:
+            specific_expiry  → CHAIN_EXP_DT_OVRD    (exact single expiry)
+            max_expiry       → CHAIN_EXPIRY_OVERRIDE  (on or before this date)
 
         specific_expiry takes precedence; when it is set, max_expiry is ignored
         here because Bloomberg will already return only that one expiry.
+
+        CHAIN_POINTS_OVRD is always set to 3000 to raise Bloomberg's default
+        cap on the number of tickers returned (typically 500).
         """
         svc     = self._ref_session.getService("//blp/refdata")
         request = svc.createRequest("ReferenceDataRequest")
         request.getElement("securities").appendValue(self.underlying)
-        request.getElement("fields").appendValue("OPT_CHAIN")
+        request.getElement("fields").appendValue("CHAIN_TICKERS")
         overrides = request.getElement("overrides")
 
         def _add_override(field_id: str, value: str) -> None:
@@ -277,11 +280,11 @@ class OptionChain:
             o.setElement("fieldId", field_id)
             o.setElement("value", value)
 
-        _add_override("OPTION_CHAIN_OVERRIDE", "A")
+        _add_override("CHAIN_POINTS_OVRD", "3000")
 
         if specific_expiry is not None:
-            _add_override("CHAIN_EXP_DT", specific_expiry.strftime("%Y%m%d"))
-            log.info("[%s] CHAIN_EXP_DT=%s", self.underlying, specific_expiry)
+            _add_override("CHAIN_EXP_DT_OVRD", specific_expiry.strftime("%Y%m%d"))
+            log.info("[%s] CHAIN_EXP_DT_OVRD=%s", self.underlying, specific_expiry)
         elif max_expiry is not None:
             _add_override("CHAIN_EXPIRY_OVERRIDE", max_expiry.strftime("%Y%m%d"))
             log.info("[%s] CHAIN_EXPIRY_OVERRIDE=%s", self.underlying, max_expiry)
@@ -295,13 +298,10 @@ class OptionChain:
                 if msg.hasElement("securityData"):
                     sd = msg.getElement("securityData").getValueAsElement(0)
                     fd = sd.getElement("fieldData")
-                    if fd.hasElement("OPT_CHAIN"):
-                        arr = fd.getElement("OPT_CHAIN")
+                    if fd.hasElement("CHAIN_TICKERS"):
+                        arr = fd.getElement("CHAIN_TICKERS")
                         for i in range(arr.numValues()):
-                            elem = arr.getValueAsElement(i)
-                            tickers.append(
-                                elem.getElementAsString("Security Description").strip()
-                            )
+                            tickers.append(arr.getValueAsString(i).strip())
             if event.eventType() == blpapi.Event.RESPONSE:
                 break
 
