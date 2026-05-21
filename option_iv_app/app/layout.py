@@ -78,7 +78,7 @@ app.layout = html.Div(
                 dcc.Input(
                     id="ticker-input", type="text",
                     placeholder="e.g. SX5E Index, SPX Index, AAPL US Equity",
-                    debounce=False, value="SX5E Index",
+                    debounce=False, value="BNP FP Equity",
                     style=input_style("300px"),
                 ),
 

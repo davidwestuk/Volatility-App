@@ -121,7 +121,7 @@ def run(ticker, source_str, user_file, max_expiry, specific_expiry,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Bloomberg option chain loading")
-    parser.add_argument("--ticker",          default="SX5E Index")
+    parser.add_argument("--ticker",          default="BNP FP Equity")
     parser.add_argument("--source",          default="cache",
                         choices=["cache", "bloomberg", "file"])
     parser.add_argument("--user-file",       default=None)
