@@ -55,10 +55,12 @@ def _ticker_to_cache_path(ticker: str) -> Path:
     State("specific-expiry-input", "value"),
     State("modulus-input",         "value"),
     State("max-subs-input",        "value"),
+    State("exchange-input",        "value"),
     prevent_initial_call=True,
 )
 def load_and_subscribe(n_clicks, raw_ticker, chain_source_val, user_file_val,
-                       max_expiry_str, specific_expiry_str, modulus_val, max_subs_val):
+                       max_expiry_str, specific_expiry_str, modulus_val,
+                       max_subs_val, exchange_val):
     if not raw_ticker or not raw_ticker.strip():
         return False, "", [], None, "✗  Please enter a ticker", True
 
@@ -107,6 +109,8 @@ def load_and_subscribe(n_clicks, raw_ticker, chain_source_val, user_file_val,
         except (ValueError, TypeError):
             return False, "", [], None, "✗  Max subscriptions must be a positive integer", True
 
+    exchange: str | None = exchange_val.strip().upper() if exchange_val and exchange_val.strip() else None
+
     try:
         total, subscribed, source = chain.load(
             ticker,
@@ -117,6 +121,7 @@ def load_and_subscribe(n_clicks, raw_ticker, chain_source_val, user_file_val,
             specific_expiry=specific_expiry,
             strike_modulus=strike_modulus,
             max_subscriptions=max_subscriptions,
+            exchange=exchange,
         )
         options   = chain.expiry_options
         first     = options[0]["value"] if options else None
@@ -132,6 +137,8 @@ def load_and_subscribe(n_clicks, raw_ticker, chain_source_val, user_file_val,
             filter_parts.append(f"mod {strike_modulus:g}")
         if max_subscriptions:
             filter_parts.append(f"cap {max_subscriptions:,}")
+        if exchange:
+            filter_parts.append(f"exch {exchange}")
         filter_str = "  ·  " + "  ·  ".join(filter_parts) if filter_parts else ""
 
         status = (

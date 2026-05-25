@@ -71,6 +71,7 @@ class OptionChain:
         specific_expiry: date | None = None,
         strike_modulus: float | None = None,
         max_subscriptions: int | None = 1000,
+        exchange: str | None = None,
     ) -> tuple[int, int, str]:
         """
         Switch to a new underlying, stopping any existing subscription first.
@@ -92,10 +93,12 @@ class OptionChain:
                                 Ignored if specific_expiry is set.
                                 For Bloomberg source: passed as CHAIN_EXPIRY_OVERRIDE.
             specific_expiry     Keep only options expiring on exactly this date.
-                                For Bloomberg source: passed as CHAIN_EXP_DT.
+                                For Bloomberg source: passed as CHAIN_EXP_DT_OVRD.
                                 Takes precedence over max_expiry.
             strike_modulus      Keep only strikes divisible by this value
             max_subscriptions   Hard cap after other filters (default 1 000)
+            exchange            Restrict chain to a single exchange via
+                                CHAIN_EXCH_OVRD (Bloomberg source only).
 
         Returns:
             (total_in_chain, subscribed_count, source)
@@ -129,6 +132,7 @@ class OptionChain:
             all_tickers = self._fetch_chain(
                 max_expiry=max_expiry,
                 specific_expiry=specific_expiry,
+                exchange=exchange,
             )
             self._seed_static(all_tickers)
             save_cache(cache_path, self._data, self._lock, ticker)
@@ -255,6 +259,7 @@ class OptionChain:
         self,
         max_expiry: date | None = None,
         specific_expiry: date | None = None,
+        exchange: str | None = None,
     ) -> list[str]:
         """
         One ReferenceDataRequest → list of option tickers via CHAIN_TICKERS.
@@ -281,6 +286,10 @@ class OptionChain:
             o.setElement("value", value)
 
         _add_override("CHAIN_POINTS_OVRD", "3000")
+
+        if exchange:
+            _add_override("CHAIN_EXCH_OVRD", exchange.strip().upper())
+            log.info("[%s] CHAIN_EXCH_OVRD=%s", self.underlying, exchange.strip().upper())
 
         if specific_expiry is not None:
             _add_override("CHAIN_EXP_DT_OVRD", specific_expiry.strftime("%Y%m%d"))

@@ -151,6 +151,16 @@ app.layout = html.Div(
 
                 html.Div(style=divider()),
 
+                html.Label("Exchange", style=label_style()),
+                dcc.Input(
+                    id="exchange-input", type="text",
+                    placeholder="e.g. LN  (blank = all)",
+                    debounce=False, value="",
+                    style=input_style("110px"),
+                ),
+
+                html.Div(style=divider()),
+
                 html.Button(
                     "⬇  LOAD & SUBSCRIBE",
                     id="load-btn", n_clicks=0,
