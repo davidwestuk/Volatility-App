@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 def ticker_to_option_data_path(ticker: str) -> Path:
     """Return the conventional optiondata_*.csv path for a given ticker."""
     filename = "optiondata_" + ticker.strip().replace(" ", "_") + ".csv"
-    return Path(filename)
+    return Path(__file__).parent.parent / filename
 
 
 class OptionChain:
