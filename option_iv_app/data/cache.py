@@ -209,6 +209,10 @@ def load_user_file(
         )
 
     df.columns = [c.strip().lower() for c in df.columns]
+    # Drop the underlying ticker column before renaming optionticker → ticker
+    # to avoid duplicate column names.
+    if "optionticker" in df.columns and "ticker" in df.columns:
+        df = df.drop(columns=["ticker"])
     df = df.rename(columns=_OPTIONDATA_RENAME)
 
     missing = [c for c in _REQUIRED_COLS if c not in df.columns]
