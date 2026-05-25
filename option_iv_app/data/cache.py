@@ -55,7 +55,15 @@ class ChainSource(str, Enum):
     FILE      = "file"
 
 
-_STATIC_KEYS = ("ticker", "strike", "expiry", "put_call")
+_REQUIRED_COLS = ("ticker", "strike", "expiry", "put_call")
+_STATIC_KEYS   = ("ticker", "strike", "expiry", "put_call", "exercise_style", "exchange")
+
+# Column rename map for optiondata_*.csv files.
+_OPTIONDATA_RENAME = {
+    "optionticker": "ticker",
+    "type":         "put_call",
+    "expiry_date":  "expiry",
+}
 
 _EMPTY_LIVE: dict = {
     "bid_vol": None, "mid_vol": None, "ask_vol": None,
@@ -137,10 +145,12 @@ def load_from_cache(
         for _, row in df.iterrows():
             ticker = row["ticker"]
             data[ticker] = {
-                "ticker":   ticker,
-                "strike":   row.get("strike"),
-                "expiry":   row.get("expiry"),
-                "put_call": row.get("put_call"),
+                "ticker":         ticker,
+                "strike":         row.get("strike"),
+                "expiry":         row.get("expiry"),
+                "put_call":       row.get("put_call"),
+                "exercise_style": row.get("exercise_style"),
+                "exchange":       row.get("exchange"),
                 **_EMPTY_LIVE,
             }
     log.info("Cache loaded: %d options from %s", len(data), cache_path.name)
@@ -173,7 +183,13 @@ def load_user_file(
     Load a user-supplied option chain file into *data* in-place under *lock*.
 
     Supported formats: .parquet, .csv, .xlsx, .xls
-    Required columns: ticker, strike, expiry, put_call (case-insensitive)
+
+    Accepts the standard optiondata_*.csv column names (optionticker, type,
+    expiry_date, strike, exercise_style, exchange) as well as the canonical
+    internal names (ticker, put_call, expiry, strike).
+
+    Required columns (after renaming): ticker, strike, expiry, put_call
+    Optional columns (after renaming): exercise_style, exchange
     """
     if not file_path.exists():
         raise FileNotFoundError(f"User file not found: {file_path}")
@@ -193,8 +209,9 @@ def load_user_file(
         )
 
     df.columns = [c.strip().lower() for c in df.columns]
+    df = df.rename(columns=_OPTIONDATA_RENAME)
 
-    missing = [c for c in _STATIC_KEYS if c not in df.columns]
+    missing = [c for c in _REQUIRED_COLS if c not in df.columns]
     if missing:
         raise ValueError(
             f"User file is missing required columns: {missing}. "
@@ -208,10 +225,12 @@ def load_user_file(
         for _, row in df.iterrows():
             ticker = str(row["ticker"]).strip()
             data[ticker] = {
-                "ticker":   ticker,
-                "strike":   row.get("strike"),
-                "expiry":   row.get("expiry"),
-                "put_call": row.get("put_call"),
+                "ticker":         ticker,
+                "strike":         row.get("strike"),
+                "expiry":         row.get("expiry"),
+                "put_call":       row.get("put_call"),
+                "exercise_style": row.get("exercise_style"),
+                "exchange":       row.get("exchange"),
                 **_EMPTY_LIVE,
             }
 

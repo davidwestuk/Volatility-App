@@ -92,7 +92,7 @@ app.layout = html.Div(
                         {"label": "Bloomberg only",    "value": "bloomberg"},
                         {"label": "File",              "value": "file"},
                     ],
-                    value="cache",
+                    value="file",
                     labelStyle={
                         "display": "inline-block",
                         "marginRight": "12px",

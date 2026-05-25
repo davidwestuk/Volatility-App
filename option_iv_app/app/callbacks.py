@@ -72,10 +72,10 @@ def load_and_subscribe(n_clicks, raw_ticker, chain_source_val, user_file_val,
         chain_source = ChainSource.CACHE
 
     user_file_path = None
-    if chain_source == ChainSource.FILE:
-        if not user_file_val or not user_file_val.strip():
-            return False, "", [], None, "✗  Please enter a file path for File source", True
+    if chain_source == ChainSource.FILE and user_file_val and user_file_val.strip():
         user_file_path = Path(user_file_val.strip())
+    # If user_file_path is None and source is FILE, load() auto-derives the path
+    # from the ticker: optiondata_{ticker}.csv in the working directory.
 
     max_expiry: date | None = None
     if max_expiry_str and max_expiry_str.strip():

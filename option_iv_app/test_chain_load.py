@@ -71,7 +71,7 @@ def print_chain_snapshot(chain):
 
 def run(ticker, source_str, user_file, max_expiry, specific_expiry,
         strike_modulus, max_subscriptions, listen_seconds):
-    from bloomberg.option_chain import OptionChain
+    from bloomberg.option_chain import OptionChain, ticker_to_option_data_path
     from data.cache import ChainSource
 
     try:
@@ -80,9 +80,10 @@ def run(ticker, source_str, user_file, max_expiry, specific_expiry,
         log.error("Invalid source '%s'. Choose: cache, bloomberg, file", source_str)
         return
 
+    # Auto-derive file path when not explicitly supplied.
     if chain_source == ChainSource.FILE and user_file is None:
-        log.error("--user-file is required when --source file is used")
-        return
+        user_file = ticker_to_option_data_path(ticker)
+        log.info("Auto-derived file path: %s", user_file)
 
     chain = OptionChain()
 
@@ -108,7 +109,11 @@ def run(ticker, source_str, user_file, max_expiry, specific_expiry,
             print("No data loaded from file.")
         else:
             print(f"Loaded {len(df):,} options from file.\n")
-            print(df[["put_call", "strike", "expiry", "ticker"]].head(10).to_string(index=False))
+            display_cols = [c for c in
+                            ["put_call", "exercise_style", "strike", "expiry",
+                             "exchange", "ticker"]
+                            if c in df.columns]
+            print(df[display_cols].head(10).to_string(index=False))
     else:
         import time
         print(f"Listening for {listen_seconds}s for live ticks ...", flush=True)
@@ -122,7 +127,7 @@ def run(ticker, source_str, user_file, max_expiry, specific_expiry,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Bloomberg option chain loading")
     parser.add_argument("--ticker",          default="BNP FP Equity")
-    parser.add_argument("--source",          default="cache",
+    parser.add_argument("--source",          default="file",
                         choices=["cache", "bloomberg", "file"])
     parser.add_argument("--user-file",       default=None)
     parser.add_argument("--specific-expiry", default=None)

@@ -32,6 +32,12 @@ from data.filters import filter_chain
 log = logging.getLogger(__name__)
 
 
+def ticker_to_option_data_path(ticker: str) -> Path:
+    """Return the conventional optiondata_*.csv path for a given ticker."""
+    filename = "optiondata_" + ticker.strip().replace(" ", "_") + ".csv"
+    return Path(filename)
+
+
 class OptionChain:
     """
     Generic Bloomberg option chain loader for any equity or index.
@@ -65,7 +71,7 @@ class OptionChain:
         self,
         ticker: str,
         cache_path: Path,
-        chain_source: ChainSource = ChainSource.CACHE,
+        chain_source: ChainSource = ChainSource.FILE,
         user_file_path: Path | None = None,
         max_expiry: date | None = None,
         specific_expiry: date | None = None,
@@ -108,7 +114,7 @@ class OptionChain:
             raise ValueError("Ticker cannot be empty")
 
         if chain_source == ChainSource.FILE and user_file_path is None:
-            raise ValueError("user_file_path must be provided when chain_source=FILE")
+            user_file_path = ticker_to_option_data_path(ticker)
 
         if self._mkt_session is not None:
             self._stop_subscription()
